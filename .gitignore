@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Audio is personal data (GDPR): never commit it
+data/
+*.wav
+*.mp3
+*.m4a
+.env
