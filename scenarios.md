@@ -1,4 +1,4 @@
-# Scenarios (Level A2)
+# Scenarios (built and tested at A2; level is a setting)
 
 ## Scenario 1: Calling the huisarts
 
