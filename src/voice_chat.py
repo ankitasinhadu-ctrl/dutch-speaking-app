@@ -14,6 +14,10 @@ load_dotenv()
 
 MIC_RATE = 16000  # Whisper expects 16,000 sound samples per second
 
+# Words Whisper should expect in this scenario (helps it hear "koorts" instead of "kort")
+WHISPER_HINT = ("Een telefoongesprek met de doktersassistente van de huisarts. "
+                "Afspraak maken, koorts, hoesten, klachten, twee dagen, vandaag, morgen.")
+
 def record_until_enter():
     """Record from the microphone until the learner presses Enter."""
     chunks = []
@@ -46,7 +50,8 @@ async def main():
 
             # 1. Speech to text
             t0 = time.time()
-            segments, info = whisper.transcribe(audio, language="nl", beam_size=5, vad_filter=True)
+            segments, info = whisper.transcribe(audio, language="nl", beam_size=5,
+            vad_filter=True, initial_prompt=WHISPER_HINT)
             user_text = " ".join(segment.text for segment in segments).strip()
             t1 = time.time()
             print("Jij (Whisper):", user_text)
