@@ -224,4 +224,5 @@ data/
 *.wav
 *.mp3
 *.m4a
-.env.vscode/
+.env
+.vscode/
