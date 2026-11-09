@@ -15,7 +15,7 @@ async def main():
     async with Runware() as client:
         start = time.time()
         stream = await client.stream({
-            "model": "google:gemma@4-31b",
+         "model": "google:gemini@3.1-flash-lite",
             "settings": {"systemPrompt": SYSTEM_PROMPT},
             "messages": [
                 {"role": "user", "content": "Goedemorgen, ik wil graag een afspraak maken met de huisarts."},
