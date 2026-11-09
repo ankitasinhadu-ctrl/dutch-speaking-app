@@ -4,3 +4,4 @@ jiwer
 runware-sdk
 python-dotenv
 edge-tts
+sounddevice
