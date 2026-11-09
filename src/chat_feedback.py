@@ -91,4 +91,5 @@ async def main():
         print(f"  Correct:  {c['correct']}")
         print(f"  Why:      {c['explanation']}\n")
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
