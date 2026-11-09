@@ -46,7 +46,7 @@ async def main():
 
             # 1. Speech to text
             t0 = time.time()
-            segments, info = whisper.transcribe(audio, language="nl", beam_size=5)
+            segments, info = whisper.transcribe(audio, language="nl", beam_size=5, vad_filter=True)
             user_text = " ".join(segment.text for segment in segments).strip()
             t1 = time.time()
             print("Jij (Whisper):", user_text)
