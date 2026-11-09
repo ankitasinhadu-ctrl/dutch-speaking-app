@@ -17,14 +17,16 @@ Rules for your reply:
 - Never switch to English, even if the patient uses English.
 - Stay in your role and help the patient make an appointment.
 - If the patient made a mistake, naturally use the correct form in your reply, without pointing out the mistake.
+- Never ask for a date of birth, address, BSN or other personal details. The patient's name is enough.
 
 Rules for corrections:
 - Check only the patient's latest message.
 - Note grammar mistakes, wrong word choices and English words.
-- Ignore spelling, capital letters and punctuation, because the text will later come from speech recognition.
+- Give each correction a type: "grammar", "word choice", "English word" or "spelling". Use "spelling" for spelling mistakes and for words that are wrongly split or joined.
+- Only correct real mistakes. If the patient's sentence is correct Dutch, do not correct it, even if you would say it differently.
+- Report each mistake only once.
 - If there are no mistakes, return an empty list.
 """
-
 # The fixed structure the LLM must answer in
 RESPONSE_SCHEMA = {
     "type": "object",
@@ -34,12 +36,13 @@ RESPONSE_SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
-                "properties": {
+                 "properties": {
                     "original": {"type": "string"},
                     "correct": {"type": "string"},
                     "explanation": {"type": "string", "description": "Short explanation in simple English"},
+                    "type": {"type": "string", "enum": ["grammar", "word choice", "English word", "spelling"]},
                 },
-                "required": ["original", "correct", "explanation"],
+                "required": ["original", "correct", "explanation", "type"],
                 "additionalProperties": False,
             },
         },
@@ -47,10 +50,15 @@ RESPONSE_SCHEMA = {
     "required": ["reply", "corrections"],
     "additionalProperties": False,
 }
-
+def keep_correction(c):
+    """Keep only real language mistakes; drop spelling and spacing, which usually come from speech recognition."""
+    if c["type"] == "spelling":
+        return False
+    same_without_spaces = c["original"].replace(" ", "").lower() == c["correct"].replace(" ", "").lower()
+    return not same_without_spaces
 async def main():
     history = []          # the conversation so far
-    all_corrections = []  # collected for the end-of-session report
+    all_corrections = []  # every correction from the whole session
 
     async with Runware() as client:
         print("Typ je antwoord in het Nederlands. Typ 'stop' om te stoppen.\n")
@@ -79,7 +87,7 @@ async def main():
 
             reply = data["reply"]
             history.append({"role": "assistant", "content": reply})
-            all_corrections.extend(data["corrections"])
+            all_corrections.extend(c for c in data["corrections"] if keep_correction(c))
             print(f"Assistent: {reply}   ({time.time() - start:.1f}s)\n")
 
     # End-of-session report

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from faster_whisper import WhisperModel
 from runware import Runware
 
-from chat_feedback import OPENING, SYSTEM_PROMPT, RESPONSE_SCHEMA  # reuse the prompt and JSON structure
+from chat_feedback import OPENING, SYSTEM_PROMPT, RESPONSE_SCHEMA, keep_correction  # reuse the prompt and JSON structure
 from speak import text_to_audio, play                              # reuse Fenna's voice
 
 load_dotenv()
