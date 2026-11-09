@@ -3,3 +3,4 @@ av<19
 jiwer
 runware-sdk
 python-dotenv
+edge-tts
