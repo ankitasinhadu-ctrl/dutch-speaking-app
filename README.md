@@ -201,5 +201,7 @@ python src/voice_chat.py
 ## About
 
 Built by **Ankita Sinha** as part of the TechPros Rotterdam Deep Learning (AI) program.
+AI speaking partner for practising Dutch, with grammar and pronunciation feedback.
+Topics : speech-recognition, whisper, llm, language-learning, dutch, python.
 
 [LinkedIn](https://linkedin.com/in/ankita-sinha-586a5118) · [GitHub](https://github.com/ankitasinhadu-ctrl)
