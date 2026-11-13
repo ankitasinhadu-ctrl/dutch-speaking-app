@@ -5,3 +5,5 @@ runware-sdk
 python-dotenv
 edge-tts
 sounddevice
+phonemizer
+espeakng-loader
