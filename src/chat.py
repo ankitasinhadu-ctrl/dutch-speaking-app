@@ -1,5 +1,6 @@
 import asyncio
 import time
+from config import LLM_MODEL
 from dotenv import load_dotenv
 from runware import Runware
 
@@ -31,7 +32,7 @@ async def main():
 
             start = time.time()
             stream = await client.stream({
-                "model": "google:gemini@3.1-flash-lite",
+                "model": LLM_MODEL,
                 "settings": {
                     "systemPrompt": SYSTEM_PROMPT,
                     "thinkingLevel": "minimal",

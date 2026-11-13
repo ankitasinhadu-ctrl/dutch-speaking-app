@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from config import LLM_MODEL
 from dotenv import load_dotenv
 from runware import Runware
 
@@ -73,7 +74,7 @@ async def main():
 
             start = time.time()
             results = await client.run({
-                "model": "google:gemini@3.1-flash-lite",
+                "model": LLM_MODEL,
                 "outputFormat": "JSON",
                 "jsonSchema": RESPONSE_SCHEMA,
                 "settings": {

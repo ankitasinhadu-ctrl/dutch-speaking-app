@@ -3,6 +3,7 @@ import json
 import time
 import numpy as np
 import sounddevice as sd
+from config import LLM_MODEL
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
 from runware import Runware
@@ -62,7 +63,7 @@ async def main():
             # 2. LLM: reply in role + grammar corrections
             history.append({"role": "user", "content": user_text})
             results = await client.run({
-                "model": "google:gemini@3.1-flash-lite",
+                "model": LLM_MODEL,
                 "outputFormat": "JSON",
                 "jsonSchema": RESPONSE_SCHEMA,
                 "settings": {
