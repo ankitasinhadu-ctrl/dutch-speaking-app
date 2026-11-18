@@ -27,7 +27,7 @@ def compare(sentence, heard):
     """Compare expected and heard sounds for one sentence.
     Returns the list of real mistakes and the phoneme error rate (PER)."""
     word_phonemes = [w.split() for w in text_to_phonemes(sentence).split("|")]
-    words = re.findall(r"[^\W\d_]+", sentence.lower())
+    words = re.findall(r"[^\W_]+", sentence.lower())
     if len(words) != len(word_phonemes):          # safety net
         words = ["".join(p) for p in word_phonemes]
 

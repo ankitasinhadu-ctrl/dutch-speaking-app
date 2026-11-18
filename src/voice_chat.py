@@ -80,7 +80,7 @@ async def main():
             data = json.loads(results[0]["text"])
             reply = data["reply"]
             history.append({"role": "assistant", "content": reply})
-            all_corrections.extend(data["corrections"])
+            all_corrections.extend(c for c in data["corrections"] if keep_correction(c))
             t2 = time.time()
 
             # 3. Text to speech
