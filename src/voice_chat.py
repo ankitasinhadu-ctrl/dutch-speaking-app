@@ -3,6 +3,8 @@ import json
 import time
 import numpy as np
 import sounddevice as sd
+from pronunciation import compare, summarise
+from phonemes import audio_to_phonemes
 from config import LLM_MODEL
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
@@ -34,6 +36,7 @@ async def main():
     print("Whisper laden...")
     whisper = WhisperModel("base", device="cpu", compute_type="int8")
     history, all_corrections = [], []
+    recordings = []  # (audio, what Whisper heard), kept in memory only
 
     async with Runware() as client:
         print("Assistent:", OPENING)
@@ -59,6 +62,7 @@ async def main():
             if not user_text:
                 print("Ik heb niets gehoord. Probeer het nog eens.")
                 continue
+            recordings.append((audio, user_text))
 
             # 2. LLM: reply in role + grammar corrections
             history.append({"role": "user", "content": user_text})
@@ -95,5 +99,21 @@ async def main():
         print(f"- You said: {c['original']}")
         print(f"  Correct:  {c['correct']}")
         print(f"  Why:      {c['explanation']}\n")
+            # Pronunciation report: analysed once, after the conversation
+    if recordings:
+        print("\nUitspraak analyseren... (dit duurt even)")
+        start = time.time()
+        all_mistakes = []
+        for audio, text in recordings:
+            heard = audio_to_phonemes(audio)
+            mistakes, per = compare(text, heard)
+            all_mistakes += mistakes
+        recordings.clear()  # privacy: audio is discarded after analysis
+        tips = summarise(all_mistakes)
+        print(f"\n===== Klanken om te oefenen ({time.time() - start:.0f}s) =====")
+        if not tips:
+            print("Geen terugkerende uitspraakfouten gevonden. Goed gedaan!")
+        for tip in tips:
+            print("-", tip)
 
 asyncio.run(main())
