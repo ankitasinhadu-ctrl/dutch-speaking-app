@@ -9,3 +9,6 @@ phonemizer
 espeakng-loader
 torch
 transformers
+fastapi
+uvicorn
+python-multipart
