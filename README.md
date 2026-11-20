@@ -2,6 +2,9 @@
 
 **An AI conversation partner that helps newcomers in the Netherlands practise speaking Dutch, with feedback on grammar and pronunciation.**
 
+**Try the interactive prototype:** https://dutch-speaking-app-demo.vercel.app (example conversation, no microphone needed)
+
+
 Work in progress · TechPros Rotterdam, Deep Learning (AI) track, Cohort 8 · Final demo: 7 December 2026
 
 ---
@@ -195,7 +198,6 @@ pip install -r requirements.txt
 echo "RUNWARE_API_KEY=your_key_here" > .env
 python src/voice_chat.py
 ```
-**Try the interactive prototype:** https://dutch-speaking-app-demo.vercel.app (example conversation, no microphone needed)
 ---
 
 ## About
