@@ -1,4 +1,4 @@
-<title>Praatmaatje Demo Flow</title>
+<title>Praatmaatje</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
@@ -110,7 +110,7 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.15;ma
 </style>
 
 <div class="app">
-  <p class="note">Prototype with example data. The buttons play a pre-written conversation; the assistant speaks with your browser's Dutch voice if it has one. In the real app your microphone, Whisper, the AI partner, Fenna's voice and wav2vec2 do the work.</p>
+  <p class="note">Work in progress: your voice is now recorded and transcribed by Whisper. The assistant's replies, feedback and report are still example data.</p>
   <header>
     <div class="brand">Praat<span>maatje</span></div>
   </header>
@@ -308,21 +308,59 @@ function addMe(text, fb){
 }
 
 const mic=$("mic");
+let recorder=null, chunks=[];
+
+/* Record the learner's voice in the browser (audio stays in memory) */
+async function startRecording(){
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  recorder=new MediaRecorder(stream); chunks=[];
+  recorder.ondataavailable=e=>chunks.push(e.data);
+  recorder.start();
+  mic.classList.add("rec"); $("micLabel").textContent="Klaar met spreken"; $("listenTag").hidden=false;
+}
+function stopRecording(){
+  return new Promise(resolve=>{
+    recorder.onstop=()=>{
+      recorder.stream.getTracks().forEach(t=>t.stop());   // switch the microphone off
+      resolve(new Blob(chunks,{type:recorder.mimeType}));
+    };
+    recorder.stop();
+  });
+}
+/* Send the recording to our FastAPI server; Whisper returns the text */
+async function transcribe(blob){
+  const form=new FormData(); form.append("audio", blob, "turn.webm");
+  const res=await fetch("/api/transcribe",{method:"POST",body:form});
+  if(!res.ok) throw new Error("Server error "+res.status);
+  return (await res.json()).text;
+}
+
 mic.addEventListener("click", async ()=>{
   const s=SCENARIOS[scenarioKey];
   if(turn>=s.turns.length) return;
-  mic.disabled=true;
-  if(turn===-1){ await speak(s.opening); turn=0; }
-  else{
-    const t=s.turns[turn];
-    mic.classList.add("rec"); $("micLabel").textContent="Luisteren…"; $("listenTag").hidden=false;
-    await wait(1500);
-    mic.classList.remove("rec"); $("listenTag").hidden=true;
-    addMe(t.me,t.fb); if(t.fb) tips.push(t.fb);
-    const th=document.createElement("p"); th.className="typing"; th.textContent="…"; $("chat").appendChild(th);
-    await wait(900); th.remove();
-    await speak(t.ai); turn++;
+
+  if(turn===-1){                                  // the assistant opens the conversation
+    mic.disabled=true; await speak(s.opening); turn=0;
+    mic.disabled=false; $("micLabel").textContent="Spreek"; return;
   }
+  if(!recorder || recorder.state==="inactive"){   // first click: start recording
+    try{ await startRecording(); }
+    catch(e){ addAi("Ik kan de microfoon niet gebruiken. Geef de browser toestemming en probeer opnieuw."); }
+    return;
+  }
+  // second click: stop, transcribe, show your words, then the assistant answers
+  mic.disabled=true; mic.classList.remove("rec"); $("listenTag").hidden=true; $("micLabel").textContent="Verwerken…";
+  const blob=await stopRecording();
+  let text="";
+  try{ text=await transcribe(blob); }catch(e){ console.error(e); }
+  if(!text){
+    addAi("Ik heb niets gehoord. Probeer het nog eens.");
+    mic.disabled=false; $("micLabel").textContent="Spreek"; return;
+  }
+  addMe(text, null);                              // grammar feedback comes in a later step
+  const th=document.createElement("p"); th.className="typing"; th.textContent="…"; $("chat").appendChild(th);
+  await wait(600); th.remove();
+  await speak(s.turns[turn].ai); turn++;          // still the example reply for now
   mic.disabled=turn>=s.turns.length;
   $("micLabel").textContent = turn>=s.turns.length ? "Gesprek klaar" : "Spreek";
 });
