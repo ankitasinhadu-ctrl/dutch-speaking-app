@@ -110,7 +110,7 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.15;ma
 </style>
 
 <div class="app">
-  <p class="note">Work in progress: your voice is now recorded and transcribed by Whisper. The assistant's replies, feedback and report are still example data.</p>
+  <p class="note">Work in progress: your voice is now recorded and transcribed by Whisper. The assistant's replies, feedback and report are still example data. The assistant now speaks with Fenna's voice from your server.</p>
   <header>
     <div class="brand">Praat<span>maatje</span></div>
   </header>
@@ -191,7 +191,7 @@ const ICONS = {
 const SCENARIOS = {
   huisarts:{
     title:"Bellen met de huisarts", sub:"Klachten uitleggen en een afspraak maken", chip:"Huisarts",
-    name:"Sanne, doktersassistente", coat:"#ffffff", prop:"cross",
+    name:"Sanne, doktersassistente", voice:"nl-NL-FennaNeural", coat:"#ffffff", prop:"cross",
     opening:"Huisartsenpraktijk De Linde, goedemorgen. Waarmee kan ik u helpen?",
     turns:[
       {me:"Goedemorgen, ik wil graag een afspraak maken.", fb:null, ai:"Goedemorgen. Wat zijn uw klachten?"},
@@ -203,7 +203,7 @@ const SCENARIOS = {
   },
   gemeente:{
     title:"Afspraak bij de gemeente", sub:"Een nieuw adres doorgeven", chip:"Gemeente",
-    name:"Lotte, baliemedewerker", coat:"#2c4f9e", prop:"none",
+    name:"Lotte, baliemedewerker", voice:"nl-NL-ColetteNeural", coat:"#2c4f9e", prop:"none",
     opening:"Gemeente Rotterdam, goedemiddag. Waarmee kan ik u helpen?",
     turns:[
       {me:"Goedemiddag. Ik ben verhuisd en ik wil mijn adres doorgeven.", fb:null, ai:"Dat kan. Wanneer kunt u langskomen?"},
@@ -215,7 +215,7 @@ const SCENARIOS = {
   },
   sollicitatie:{
     title:"Sollicitatiegesprek", sub:"Jezelf voorstellen en je ervaring uitleggen", chip:"Sollicitatie",
-    name:"Eva, recruiter", coat:"#2b2f3a", prop:"none",
+    name:"Eva, recruiter", voice:"nl-NL-FennaNeural", coat:"#2b2f3a", prop:"none",
     opening:"Goedemiddag, welkom! Fijn dat u er bent. Kunt u iets over uzelf vertellen?",
     turns:[
       {me:"Ik ben Ankita. Ik heb tien jaar ervaring in de financiële sector.", fb:null, ai:"Mooi. Waarom wilt u bij ons werken?"},
@@ -258,7 +258,7 @@ $("startBtn").addEventListener("click",()=>{
   $("startScreen").hidden=true; $("callScreen").hidden=false; window.scrollTo(0,0);
 });
 $("backBtn").addEventListener("click",()=>{
-  if("speechSynthesis" in window) speechSynthesis.cancel(); stopTalking();
+  stopVoice(); stopTalking();
   $("callScreen").hidden=true; $("startScreen").hidden=false;
 });
 function resetCall(){
@@ -272,23 +272,49 @@ function setMouth(o){ mouthOpen.setAttribute("ry",(1+o*9).toFixed(1)); mouthOpen
 function startTalking(){ aiTile.classList.add("active"); if(reduced){setMouth(.4);return;}
   mouthTimer=setInterval(()=>setMouth(Math.random()<.2?.05:.25+Math.random()*.75),110); }
 function stopTalking(){ clearInterval(mouthTimer); setMouth(0); aiTile.classList.remove("active"); }
-function dutchVoice(){ if(!("speechSynthesis" in window)) return null; return speechSynthesis.getVoices().find(v=>/^nl/i.test(v.lang))||null; }
-
+/* Fenna's voice comes from our server; the mouth follows how loud she speaks */
+let audioCtx=null, analyser=null, currentAudio=null;
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser(); analyser.fftSize=512; analyser.connect(audioCtx.destination);
+  }
+  if(audioCtx.state==="suspended") audioCtx.resume();
+}
+function stopVoice(){ if(currentAudio){ currentAudio.pause(); currentAudio.dispatchEvent(new Event("ended")); } }
 function addAi(text){
   const row=document.createElement("div"); row.className="row ai";
   const m=document.createElement("div"); m.className="msg"; m.textContent=text;
   row.appendChild(m); $("chat").appendChild(row); row.scrollIntoView({block:"nearest"});
 }
-function speak(text){
-  return new Promise(resolve=>{
-    addAi(text); startTalking();
-    const fallback=Math.max(1600,text.length*65), voice=soundOn?dutchVoice():null;
-    let done=false; const finish=()=>{if(done)return; done=true; stopTalking(); resolve();};
-    if(!voice){ setTimeout(finish,fallback); return; }
-    try{ const u=new SpeechSynthesisUtterance(text); u.voice=voice; u.lang=voice.lang; u.rate=.95;
-      u.onend=finish; u.onerror=finish; speechSynthesis.cancel(); speechSynthesis.speak(u); setTimeout(finish,fallback*3);
-    }catch(e){ setTimeout(finish,fallback); }
+async function speak(text){
+  addAi(text);
+  const silentTalk=async()=>{ startTalking(); await wait(Math.max(1600,text.length*65)); stopTalking(); };
+  if(!soundOn){ await silentTalk(); return; }
+  let url;
+  try{
+    const res=await fetch("/api/speak",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({text, voice:SCENARIOS[scenarioKey].voice})});
+    if(!res.ok) throw new Error("Server error "+res.status);
+    url=URL.createObjectURL(await res.blob());
+  }catch(e){ console.error(e); await silentTalk(); return; }
+  ensureAudio();
+  const audio=new Audio(url); currentAudio=audio;
+  const source=audioCtx.createMediaElementSource(audio); source.connect(analyser);
+  const data=new Uint8Array(analyser.fftSize); let frame;
+  const follow=()=>{                       // loudness of this moment -> how wide the mouth opens
+    analyser.getByteTimeDomainData(data);
+    let sum=0; for(const v of data){ const x=(v-128)/128; sum+=x*x; }
+    setMouth(reduced?0.4:Math.min(1,Math.sqrt(sum/data.length)*6));
+    frame=requestAnimationFrame(follow);
+  };
+  aiTile.classList.add("active");
+  await new Promise(resolve=>{
+    audio.addEventListener("ended",resolve,{once:true}); audio.onerror=resolve;
+    audio.play().then(follow).catch(resolve);
   });
+  cancelAnimationFrame(frame); source.disconnect(); URL.revokeObjectURL(url);
+  currentAudio=null; stopTalking();
 }
 function addMe(text, fb){
   const row=document.createElement("div"); row.className="row me";
@@ -336,6 +362,7 @@ async function transcribe(blob){
 }
 
 mic.addEventListener("click", async ()=>{
+  ensureAudio();                                  // browsers only allow sound after a click
   const s=SCENARIOS[scenarioKey];
   if(turn>=s.turns.length) return;
 
@@ -367,11 +394,11 @@ mic.addEventListener("click", async ()=>{
 $("sound").addEventListener("click",e=>{
   soundOn=!soundOn; e.currentTarget.setAttribute("aria-pressed",soundOn);
   e.currentTarget.textContent=soundOn?"Geluid aan":"Geluid uit";
-  if(!soundOn && "speechSynthesis" in window) speechSynthesis.cancel();
+  if(!soundOn) stopVoice();
 });
 
 $("stop").addEventListener("click", async ()=>{
-  if("speechSynthesis" in window) speechSynthesis.cancel(); stopTalking();
+  stopVoice(); stopTalking();
   const s=SCENARIOS[scenarioKey], r=$("report");
   r.hidden=false; r.innerHTML='<h2>Sessierapport</h2><p class="typing">Uitspraak analyseren… (wav2vec2)</p>';
   r.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"});
