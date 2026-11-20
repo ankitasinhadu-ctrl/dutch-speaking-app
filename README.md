@@ -195,7 +195,7 @@ pip install -r requirements.txt
 echo "RUNWARE_API_KEY=your_key_here" > .env
 python src/voice_chat.py
 ```
-
+**Try the interactive prototype:** https://dutch-speaking-app-demo.vercel.app (example conversation, no microphone needed)
 ---
 
 ## About
