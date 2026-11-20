@@ -1,0 +1,361 @@
+<title>Praatmaatje Demo Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: phone-width column. Screen 1 = choose level + scenario. Screen 2 = avatar on top, transcript below, sticky talk bar, report at the end */
+:root{
+  --bg:#eef2f7; --surface:#ffffff; --ink:#14213d; --muted:#5b6782;
+  --line:#d6dde9; --delft:#1f4fbf; --delft-soft:#e3ebfb; --tulip:#e4572e;
+  --ok:#1f8a5b; --ok-soft:#e2f3ea; --warn:#b4610b; --warn-soft:#fbeedb;
+  --tile:#dfe7f5; --skin:#c98b62; --skin-shade:#b07650; --hair:#3a2418; --coat-line:#c8d2e4; --lip:#9e4a3a;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1424; --surface:#16203a; --ink:#e7ecf6; --muted:#9aa6c2; --line:#2a3656;
+  --delft:#7ea2ff; --delft-soft:#1f2d52; --tulip:#ff7a52; --ok:#5fd19a; --ok-soft:#173a2b;
+  --warn:#f0a85a; --warn-soft:#3a2a14; --tile:#1c2947; --coat-line:#9fb0d0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1424; --surface:#16203a; --ink:#e7ecf6; --muted:#9aa6c2; --line:#2a3656;
+  --delft:#7ea2ff; --delft-soft:#1f2d52; --tulip:#ff7a52; --ok:#5fd19a; --ok-soft:#173a2b;
+  --warn:#f0a85a; --warn-soft:#3a2a14; --tile:#1c2947; --coat-line:#9fb0d0; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 0}
+.app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.note{font-size:12.5px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:8px 12px;margin:0}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.01em}
+.brand span{color:var(--tulip)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;background:var(--delft-soft);color:var(--delft)}
+button{font:inherit;cursor:pointer;border:none;color:inherit}
+button:focus-visible{outline:3px solid var(--tulip);outline-offset:2px}
+h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.15;margin:4px 0 0;text-wrap:balance}
+.lead{color:var(--muted);margin:0}
+.label{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
+
+/* Start screen */
+.levels{display:flex;gap:8px;flex-wrap:wrap}
+.level{flex:1;min-width:90px;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:10px;text-align:left}
+.level b{font-family:var(--display);font-size:20px;display:block}
+.level small{color:var(--muted);font-size:12.5px}
+.level[aria-checked="true"]{border-color:var(--delft);background:var(--delft-soft)}
+.scenarios{display:flex;flex-direction:column;gap:10px}
+.scenario{display:flex;gap:14px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left}
+.scenario[aria-checked="true"]{border-color:var(--tulip)}
+.scenario .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--delft-soft);color:var(--delft);flex:none}
+.scenario b{display:block;font-size:16px}
+.scenario small{color:var(--muted)}
+.start{background:var(--tulip);color:#fff;font-weight:600;font-size:16px;padding:15px;border-radius:999px;width:100%}
+
+/* Call screen */
+.topline{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.back{background:transparent;color:var(--muted);font-weight:500;padding:6px 0}
+.tile{position:relative;background:var(--tile);border-radius:18px;overflow:hidden;border:3px solid transparent;transition:border-color .2s}
+.tile.active{border-color:var(--delft)}
+.tile .name{position:absolute;left:10px;bottom:10px;background:var(--surface);font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;display:flex;align-items:center;gap:6px}
+.tile .name i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.tile.active .name i{background:var(--ok)}
+.tile .listen{position:absolute;right:10px;bottom:10px;background:var(--tulip);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
+.avatar-svg{display:block;width:100%;height:auto;max-height:260px}
+#eyes{animation:blink 4.5s infinite;transform-origin:150px 128px}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+
+.chat{display:flex;flex-direction:column;gap:10px;min-height:120px}
+.row{display:flex;flex-direction:column;gap:6px;max-width:88%}
+.row.ai{align-self:flex-start}
+.row.me{align-self:flex-end;align-items:flex-end}
+.msg{padding:10px 13px;border-radius:14px;min-width:0}
+.ai .msg{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.me .line{display:flex;gap:8px;align-items:center}
+.me .msg{background:var(--delft);color:#fff;border-bottom-right-radius:4px}
+.fb{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:700;font-size:14px}
+.fb.good{background:var(--ok-soft);color:var(--ok)}
+.fb.tip{background:var(--warn-soft);color:var(--warn)}
+.fbpanel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13.5px;max-width:100%}
+.fbpanel .said{text-decoration:line-through;color:var(--warn)}
+.fbpanel .right{color:var(--ok);font-weight:600}
+.fbpanel .why{color:var(--muted);display:block}
+.typing{color:var(--muted);font-style:italic;margin:0;font-size:13.5px}
+
+.bar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:18px 0 calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+.mic{display:flex;align-items:center;gap:10px;background:var(--tulip);color:#fff;font-weight:600;padding:14px 22px;border-radius:999px;font-size:16px}
+.mic .dot{width:12px;height:12px;border-radius:50%;background:#fff}
+.mic.rec .dot{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.mic:disabled{opacity:.5;cursor:default}
+.ghost{background:transparent;border:1px solid var(--line);padding:13px 18px;border-radius:999px;font-weight:500}
+.ghost[aria-pressed="false"]{opacity:.6}
+@media (prefers-reduced-motion:reduce){#eyes,.mic.rec .dot{animation:none}}
+
+/* Report */
+.report{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.report h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
+.report h3{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 6px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.item .said{text-decoration:line-through;color:var(--warn)}
+.item .right{color:var(--ok);font-weight:600}
+.item .why{color:var(--muted);font-size:13.5px}
+.sound{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--warn-soft)}
+.sound .ipa{font-family:var(--mono);font-size:18px;color:var(--warn);min-width:48px}
+.sound .words{font-size:13px;color:var(--muted)}
+.score{display:flex;gap:10px;flex-wrap:wrap}
+.score div{flex:1;min-width:110px;background:var(--ok-soft);border-radius:10px;padding:10px 12px}
+.score b{font-family:var(--display);font-size:22px;display:block;color:var(--ok);font-variant-numeric:tabular-nums}
+.score small{color:var(--muted)}
+</style>
+
+<div class="app">
+  <p class="note">Prototype with example data. The buttons play a pre-written conversation; the assistant speaks with your browser's Dutch voice if it has one. In the real app your microphone, Whisper, the AI partner, Fenna's voice and wav2vec2 do the work.</p>
+  <header>
+    <div class="brand">Praat<span>maatje</span></div>
+  </header>
+
+  <!-- Screen 1: start -->
+  <section id="startScreen" class="app" style="gap:18px">
+    <div>
+      <h1>Oefen een echt gesprek in het Nederlands</h1>
+      <p class="lead">Choose your level and a situation. You speak, the assistant answers, and you get feedback at the end.</p>
+    </div>
+    <div>
+      <p class="label">Jouw niveau</p>
+      <div class="levels" role="radiogroup" aria-label="Niveau">
+        <button class="level" role="radio" aria-checked="false" data-level="A1"><b>A1</b><small>Beginner</small></button>
+        <button class="level" role="radio" aria-checked="true" data-level="A2"><b>A2</b><small>Basis</small></button>
+        <button class="level" role="radio" aria-checked="false" data-level="B1"><b>B1</b><small>Gemiddeld</small></button>
+      </div>
+    </div>
+    <div>
+      <p class="label">Kies een situatie</p>
+      <div class="scenarios" role="radiogroup" aria-label="Situatie" id="scenarioList"></div>
+    </div>
+    <button class="start" id="startBtn">Start gesprek</button>
+  </section>
+
+  <!-- Screen 2: conversation -->
+  <section id="callScreen" class="app" hidden>
+    <div class="topline">
+      <button class="back" id="backBtn">← Ander gesprek</button>
+      <div class="chips"><span class="chip" id="chipLevel">A2</span><span class="chip" id="chipScenario">Huisarts</span></div>
+    </div>
+
+    <div class="tile" id="aiTile">
+      <svg class="avatar-svg" viewBox="0 30 300 240" role="img" aria-label="Pratende assistent">
+        <rect y="0" width="300" height="300" fill="var(--tile)"/>
+        <g id="prop"></g>
+        <path id="coat" d="M60 300c4-62 42-92 90-92s86 30 90 92z" fill="#ffffff" stroke="var(--coat-line)" stroke-width="2"/>
+        <path d="M128 212l22 40 22-40" fill="none" stroke="var(--coat-line)" stroke-width="2"/>
+        <rect x="134" y="180" width="32" height="34" rx="10" fill="var(--skin-shade)"/>
+        <path d="M86 132c-6-58 26-88 64-88s70 30 64 88c-4 30-14 50-14 50H100s-10-20-14-50z" fill="var(--hair)"/>
+        <ellipse cx="150" cy="135" rx="50" ry="60" fill="var(--skin)"/>
+        <ellipse cx="100" cy="140" rx="8" ry="12" fill="var(--skin-shade)"/>
+        <ellipse cx="200" cy="140" rx="8" ry="12" fill="var(--skin-shade)"/>
+        <path d="M100 112c10-34 36-44 62-38 20 4 34 20 38 40-18-14-40-20-62-18-16 2-28 8-38 16z" fill="var(--hair)"/>
+        <g id="eyes">
+          <ellipse cx="131" cy="130" rx="6" ry="7" fill="#1d1410"/>
+          <ellipse cx="169" cy="130" rx="6" ry="7" fill="#1d1410"/>
+          <circle cx="133" cy="128" r="2" fill="#fff"/><circle cx="171" cy="128" r="2" fill="#fff"/>
+        </g>
+        <path d="M120 116q11-6 22 0M158 116q11-6 22 0" fill="none" stroke="var(--hair)" stroke-width="3" stroke-linecap="round"/>
+        <path d="M150 136q-4 14 2 16" fill="none" stroke="var(--skin-shade)" stroke-width="2.5" stroke-linecap="round"/>
+        <ellipse cx="122" cy="154" rx="9" ry="5" fill="var(--tulip)" opacity=".18"/>
+        <ellipse cx="178" cy="154" rx="9" ry="5" fill="var(--tulip)" opacity=".18"/>
+        <ellipse id="mouthOpen" cx="150" cy="166" rx="11" ry="1" fill="#5a1f1a"/>
+        <path id="mouthLine" d="M138 165q12 8 24 0" fill="none" stroke="var(--lip)" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <span class="name"><i></i><span id="aiName">Sanne</span></span>
+      <span class="listen" id="listenTag" hidden>Luistert naar jou…</span>
+    </div>
+
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <section class="report" id="report" hidden></section>
+
+    <div class="bar">
+      <button class="mic" id="mic"><span class="dot"></span><span id="micLabel">Begin</span></button>
+      <button class="ghost" id="sound" aria-pressed="true">Geluid aan</button>
+      <button class="ghost" id="stop">Stop en rapport</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const ICONS = {
+  huisarts:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  gemeente:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10l9-6 9 6M5 10v9M19 10v9M9 10v9M15 10v9M3 20h18"/></svg>',
+  sollicitatie:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 12h18"/></svg>'
+};
+const SCENARIOS = {
+  huisarts:{
+    title:"Bellen met de huisarts", sub:"Klachten uitleggen en een afspraak maken", chip:"Huisarts",
+    name:"Sanne, doktersassistente", coat:"#ffffff", prop:"cross",
+    opening:"Huisartsenpraktijk De Linde, goedemorgen. Waarmee kan ik u helpen?",
+    turns:[
+      {me:"Goedemorgen, ik wil graag een afspraak maken.", fb:null, ai:"Goedemorgen. Wat zijn uw klachten?"},
+      {me:"Ik heb koorts sinds twee dag.", fb:{said:"twee dag",right:"twee dagen",why:"After a number above one, use the plural."}, ai:"Dat is vervelend. Al twee dagen? Heeft u ook andere klachten?"},
+      {me:"Nee, ik heb niet andere klachten.", fb:{said:"niet andere klachten",right:"geen andere klachten",why:"Use \"geen\" to say no to a noun."}, ai:"Goed, geen andere klachten. Kunt u vandaag om twee uur komen?"},
+      {me:"Ja, het is goed van mij.", fb:{said:"goed van mij",right:"goed voor mij",why:"Use \"voor\" to say that something suits you."}, ai:"Prima, dan zie ik u vanmiddag om twee uur. Beterschap!"}
+    ],
+    sounds:[{ipa:"œy",tip:"\"ui\" klonk als Engels \"ow\"",words:"huisarts, beterschap"},{ipa:"aː",tip:"\"aa\" was te kort",words:"graag, afspraak, dagen"}]
+  },
+  gemeente:{
+    title:"Afspraak bij de gemeente", sub:"Een nieuw adres doorgeven", chip:"Gemeente",
+    name:"Lotte, baliemedewerker", coat:"#2c4f9e", prop:"none",
+    opening:"Gemeente Rotterdam, goedemiddag. Waarmee kan ik u helpen?",
+    turns:[
+      {me:"Goedemiddag. Ik ben verhuisd en ik wil mijn adres doorgeven.", fb:null, ai:"Dat kan. Wanneer kunt u langskomen?"},
+      {me:"Ik kan komen dinsdagochtend.", fb:{said:"kan komen dinsdagochtend",right:"kan dinsdagochtend komen",why:"The second verb goes to the end of the sentence."}, ai:"Dinsdag om tien uur is nog vrij. Is dat goed?"},
+      {me:"Ja. Welke documenten moet ik meenemen?", fb:null, ai:"Neem uw paspoort en uw huurcontract mee."},
+      {me:"Oké, dank u wel. Ik neem het mee.", fb:{said:"Ik neem het mee",right:"Ik neem ze mee",why:"Use \"ze\" for more than one thing: the passport and the contract."}, ai:"Graag gedaan. Tot dinsdag!"}
+    ],
+    sounds:[{ipa:"œy",tip:"\"ui\" klonk als Engels \"ow\"",words:"verhuisd, huurcontract"},{ipa:"ɛɪ",tip:"\"ij\" klonk als Engels \"i\" (as in \"my\")",words:"mijn, tijd"}]
+  },
+  sollicitatie:{
+    title:"Sollicitatiegesprek", sub:"Jezelf voorstellen en je ervaring uitleggen", chip:"Sollicitatie",
+    name:"Eva, recruiter", coat:"#2b2f3a", prop:"none",
+    opening:"Goedemiddag, welkom! Fijn dat u er bent. Kunt u iets over uzelf vertellen?",
+    turns:[
+      {me:"Ik ben Ankita. Ik heb tien jaar ervaring in de financiële sector.", fb:null, ai:"Mooi. Waarom wilt u bij ons werken?"},
+      {me:"Ik ben interessant in AI en ik vind jullie bedrijf leuk.", fb:{said:"Ik ben interessant in AI",right:"Ik ben geïnteresseerd in AI",why:"\"Interessant\" means interesting. To say you are interested, use \"geïnteresseerd\"."}, ai:"Dat klinkt goed. Wat zijn uw sterke punten?"},
+      {me:"Ik ben goed met klanten en ik werk graag in een team.", fb:null, ai:"Uitstekend. Wanneer kunt u beginnen?"},
+      {me:"Ik kan beginnen in de volgende maand.", fb:{said:"beginnen in de volgende maand",right:"volgende maand beginnen",why:"No \"in de\" is needed, and the second verb goes to the end."}, ai:"Dank u wel. We nemen volgende week contact met u op."}
+    ],
+    sounds:[{ipa:"aː",tip:"\"aa\" was te kort",words:"jaar, graag, maand"},{ipa:"u",tip:"\"oe\" klonk als \"o\"",words:"goed, volgende"}]
+  }
+};
+
+const $=id=>document.getElementById(id);
+const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let level="A2", scenarioKey="huisarts", turn=-1, soundOn=true, mouthTimer=null, tips=[];
+
+/* Start screen */
+const list=$("scenarioList");
+for(const [key,s] of Object.entries(SCENARIOS)){
+  const b=document.createElement("button");
+  b.className="scenario"; b.setAttribute("role","radio"); b.dataset.key=key;
+  b.setAttribute("aria-checked", key===scenarioKey);
+  b.innerHTML=`<span class="ico">${ICONS[key]}</span><span><b></b><small></small></span>`;
+  b.querySelector("b").textContent=s.title; b.querySelector("small").textContent=s.sub;
+  b.addEventListener("click",()=>{scenarioKey=key; list.querySelectorAll(".scenario").forEach(x=>x.setAttribute("aria-checked",x===b));});
+  list.appendChild(b);
+}
+document.querySelectorAll(".level").forEach(b=>b.addEventListener("click",()=>{
+  level=b.dataset.level; document.querySelectorAll(".level").forEach(x=>x.setAttribute("aria-checked",x===b));
+}));
+
+$("startBtn").addEventListener("click",()=>{
+  const s=SCENARIOS[scenarioKey];
+  $("chipLevel").textContent=level; $("chipScenario").textContent=s.chip; $("aiName").textContent=s.name;
+  $("coat").setAttribute("fill",s.coat);
+  $("prop").innerHTML = s.prop==="cross"
+    ? '<rect x="205" y="50" width="62" height="78" rx="6" fill="var(--surface)" opacity=".6"/><path d="M224 80h24M236 68v24" stroke="var(--tulip)" stroke-width="7" stroke-linecap="round"/>'
+    : '<rect x="205" y="50" width="62" height="78" rx="6" fill="var(--surface)" opacity=".45"/><path d="M216 70h40M216 84h40M216 98h28" stroke="var(--delft)" stroke-width="4" stroke-linecap="round" opacity=".6"/>';
+  resetCall();
+  $("startScreen").hidden=true; $("callScreen").hidden=false; window.scrollTo(0,0);
+});
+$("backBtn").addEventListener("click",()=>{
+  if("speechSynthesis" in window) speechSynthesis.cancel(); stopTalking();
+  $("callScreen").hidden=true; $("startScreen").hidden=false;
+});
+function resetCall(){
+  turn=-1; tips=[]; $("chat").innerHTML=""; $("report").hidden=true;
+  $("mic").disabled=false; $("micLabel").textContent="Begin";
+}
+
+/* Avatar talking */
+const mouthOpen=$("mouthOpen"), mouthLine=$("mouthLine"), aiTile=$("aiTile");
+function setMouth(o){ mouthOpen.setAttribute("ry",(1+o*9).toFixed(1)); mouthOpen.setAttribute("rx",(11-o*2).toFixed(1)); mouthLine.style.opacity=o>.15?0:1; }
+function startTalking(){ aiTile.classList.add("active"); if(reduced){setMouth(.4);return;}
+  mouthTimer=setInterval(()=>setMouth(Math.random()<.2?.05:.25+Math.random()*.75),110); }
+function stopTalking(){ clearInterval(mouthTimer); setMouth(0); aiTile.classList.remove("active"); }
+function dutchVoice(){ if(!("speechSynthesis" in window)) return null; return speechSynthesis.getVoices().find(v=>/^nl/i.test(v.lang))||null; }
+
+function addAi(text){
+  const row=document.createElement("div"); row.className="row ai";
+  const m=document.createElement("div"); m.className="msg"; m.textContent=text;
+  row.appendChild(m); $("chat").appendChild(row); row.scrollIntoView({block:"nearest"});
+}
+function speak(text){
+  return new Promise(resolve=>{
+    addAi(text); startTalking();
+    const fallback=Math.max(1600,text.length*65), voice=soundOn?dutchVoice():null;
+    let done=false; const finish=()=>{if(done)return; done=true; stopTalking(); resolve();};
+    if(!voice){ setTimeout(finish,fallback); return; }
+    try{ const u=new SpeechSynthesisUtterance(text); u.voice=voice; u.lang=voice.lang; u.rate=.95;
+      u.onend=finish; u.onerror=finish; speechSynthesis.cancel(); speechSynthesis.speak(u); setTimeout(finish,fallback*3);
+    }catch(e){ setTimeout(finish,fallback); }
+  });
+}
+function addMe(text, fb){
+  const row=document.createElement("div"); row.className="row me";
+  const line=document.createElement("div"); line.className="line";
+  const btn=document.createElement("button");
+  btn.className="fb "+(fb?"tip":"good"); btn.textContent=fb?"!":"✓";
+  btn.setAttribute("aria-label", fb?"Toon feedback":"Geen fouten"); btn.setAttribute("aria-expanded","false");
+  const m=document.createElement("div"); m.className="msg"; m.textContent=text;
+  line.append(btn,m); row.appendChild(line);
+  const panel=document.createElement("div"); panel.className="fbpanel"; panel.hidden=true;
+  if(fb){ panel.innerHTML='<span class="said"></span> → <span class="right"></span><span class="why"></span>';
+    panel.querySelector(".said").textContent=fb.said; panel.querySelector(".right").textContent=fb.right; panel.querySelector(".why").textContent=fb.why; }
+  else panel.textContent="Goed gezegd! Geen grammaticafouten.";
+  row.appendChild(panel);
+  btn.addEventListener("click",()=>{ panel.hidden=!panel.hidden; btn.setAttribute("aria-expanded",!panel.hidden); });
+  $("chat").appendChild(row); row.scrollIntoView({block:"nearest"});
+}
+
+const mic=$("mic");
+mic.addEventListener("click", async ()=>{
+  const s=SCENARIOS[scenarioKey];
+  if(turn>=s.turns.length) return;
+  mic.disabled=true;
+  if(turn===-1){ await speak(s.opening); turn=0; }
+  else{
+    const t=s.turns[turn];
+    mic.classList.add("rec"); $("micLabel").textContent="Luisteren…"; $("listenTag").hidden=false;
+    await wait(1500);
+    mic.classList.remove("rec"); $("listenTag").hidden=true;
+    addMe(t.me,t.fb); if(t.fb) tips.push(t.fb);
+    const th=document.createElement("p"); th.className="typing"; th.textContent="…"; $("chat").appendChild(th);
+    await wait(900); th.remove();
+    await speak(t.ai); turn++;
+  }
+  mic.disabled=turn>=s.turns.length;
+  $("micLabel").textContent = turn>=s.turns.length ? "Gesprek klaar" : "Spreek";
+});
+$("sound").addEventListener("click",e=>{
+  soundOn=!soundOn; e.currentTarget.setAttribute("aria-pressed",soundOn);
+  e.currentTarget.textContent=soundOn?"Geluid aan":"Geluid uit";
+  if(!soundOn && "speechSynthesis" in window) speechSynthesis.cancel();
+});
+
+$("stop").addEventListener("click", async ()=>{
+  if("speechSynthesis" in window) speechSynthesis.cancel(); stopTalking();
+  const s=SCENARIOS[scenarioKey], r=$("report");
+  r.hidden=false; r.innerHTML='<h2>Sessierapport</h2><p class="typing">Uitspraak analyseren… (wav2vec2)</p>';
+  r.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"});
+  await wait(1500);
+  const spoken=Math.max(turn,0);
+  r.innerHTML=`<h2>Sessierapport</h2>
+    <div class="score">
+      <div><b>${spoken}</b><small>beurten gesproken</small></div>
+      <div><b>${tips.length}</b><small>grammatica-tips</small></div>
+      <div><b>${spoken?"84%":"–"}</b><small>klanken correct</small></div>
+    </div>
+    <div><h3>Grammatica</h3><div class="list" id="gList"></div></div>
+    <div><h3>Klanken om te oefenen</h3><div class="list" id="sList"></div></div>`;
+  const g=$("gList");
+  if(!tips.length) g.innerHTML='<p class="typing">Geen grammaticafouten gevonden in dit gesprek.</p>';
+  tips.forEach(t=>{ const d=document.createElement("div"); d.className="item";
+    d.innerHTML='<span class="said"></span><span class="right"></span><span class="why"></span>';
+    d.querySelector(".said").textContent=t.said; d.querySelector(".right").textContent=t.right; d.querySelector(".why").textContent=t.why; g.appendChild(d); });
+  const sl=$("sList");
+  if(!spoken) sl.innerHTML='<p class="typing">Spreek eerst een paar zinnen.</p>';
+  else s.sounds.forEach(x=>{ const d=document.createElement("div"); d.className="sound";
+    d.innerHTML='<span class="ipa"></span><div><b></b><div class="words"></div></div>';
+    d.querySelector(".ipa").textContent=x.ipa; d.querySelector("b").textContent=x.tip; d.querySelector(".words").textContent=x.words; sl.appendChild(d); });
+});
+</script>
